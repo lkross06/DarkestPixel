@@ -5,6 +5,8 @@ let canvas = document.getElementById("canvas")
 
 let context = canvas.getContext("2d") //get canvas context (lets us edit canvas)
 
+let hold = false //tracks if mouse button is held or not
+
 //top left
 x1 = 0
 y1 = 0
@@ -14,6 +16,19 @@ y2 = 0
 
 //the image itself!!
 let image = new Image()
+
+class Pixel{
+    constructor(r, g, b){
+        this.r = r
+        this.g = g
+        this.b = b
+        this.avg = (r + g + b)/3
+    }
+
+    toString(){
+        return "(" + this.r + ", " + this.g + ", " + this.b + ")"
+    }
+}
 
 function readURL(input) {
     if (input.files && input.files[0]) { // if the files exist
@@ -28,7 +43,6 @@ function readURL(input) {
   }
 
 function updateCanvas(url) { //adds the image to the canvas
-    console.log("update canvas")
     image.src = url
     image.onload = function(){ //once the image has loaded, paste it onto the canvas
         //update the canvas's size to fit the image
@@ -58,7 +72,7 @@ function drawImg(i){ //clears the canvas and draws the image
 canvas.addEventListener("mousedown", (e)=>{
     x1 = e.offsetX
     y1 = e.offsetY
-    console.log(x1 + ", " + y1)
+    hold = true
 
     //clear and redraw image
     drawImg(image)
@@ -67,43 +81,75 @@ canvas.addEventListener("mousedown", (e)=>{
 canvas.addEventListener("mouseup", (e)=>{
     x2 = e.offsetX
     y2 = e.offsetY
+    hold = false
 
-    console.log(x2 + ", " + y2)
+    //check to make sure (x1,y1) is top-left and (x2,y2) is bottom-right
+    //check if point 1 is top-right, point 2 is bottom-left
+    if (x1 > x2){
+        //swap x vals
+        let temp = x1
+        x1 = x2
+        x2 = temp
+    }
+    //check if point 1 is bottom-left, point 2 is top-right
+    if (y1 > y2){
+        //swap y vals
+        let temp = y1
+        y1 = y2
+        y2 = temp
+    }
 
-    
     //now draw a box between (x1,y1) to (x2, y2)
+    drawBox(x1, y1, x2, y2)
+
+    //find the darkest pixel again
+    let darkest = findDarkestPixel(context.getImageData(0, 0, w, h).data, x1, y1, x2, y2)
+    updateDarkest(darkest)  
+})
+
+function drawBox(xmin, ymin, xmax, ymax){
     context.beginPath()
-    context.rect(x1, y1, x2 - x1, y2 - y1)
+    //create a 1px border, so that none of the pixels in the selection are part of the box
+    context.rect(xmin - 1, ymin - 1, xmax - xmin + 2, ymax - ymin + 2)
     context.strokeStyle = "blue"
     context.stroke()
-})
+}
 
 //parses the image data (in a given box) into rgba pixels and finds the darkest one
 //by default, it just checks the entire image
-function findDarkestPixel(id, xmin = 0, ymin = 0, xmax = image.width, ymax = image.height){ 
-    pixels = [] //1 dimensional array of pixel brightnesses
+function findDarkestPixel(id, xmin = 0, ymin = 0, xmax = image.width, ymax = image.height){
+    pixels = [] //1 dimensional array of pixels
 
     for (let i = 0; i < id.length; i+= 4){
         r = id[i]
         g = id[i + 1]
         b = id[i + 2]
-        avg = (r + g + b)/3
 
-        pixels.push(avg)
+        pixels.push(new Pixel(r, g, b))
     }
 
+    pixels2d = [] //2 dimensional array of pixels
+    index = 0 //allows us to access correctly from 1d array
+    for (let i = 0; i < image.height; i++){ //rows
+        row = []
+        for (let j = 0; j < image.width; j++){ //columns
+            row.push(pixels[index])
+            index++
+        }
+        pixels2d.push(row)
+    }
 
-    let min = 255 //avg pixel vals are on range from 0-255
-    let minrgbvals = [255, 255, 255] //(255, 255, 255) = white (the lightest color)
-    for (let i = 0; i < id.length; i+=4){
-        if (min > avg){
-            min = avg
-            minrgbvals = [r,g,b]
+    let min = new Pixel(255, 255, 255) //avg pixel vals are on range from 0-255, maximum is (255, 255, 255)
+    for (let i = ymin; i < ymax; i++){ //rows
+        for (let j = xmin; j < xmax; j++){ //cols
+            if (pixels2d[i][j].avg < min.avg){
+                min = pixels2d[i][j]
+            }
         }
     }
-    return minrgbvals
+    return min
 }
 
-function updateDarkest(pixel){
-    document.getElementById("darkest").innerText = pixel
+function updateDarkest(pixel){ //takes a Pixel object
+    document.getElementById("darkest").innerText = pixel.toString()
 }
