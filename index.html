@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        <title>Darkest Pixel</title>
+        <style>
+            * {
+                font-family: sans-serif;
+            }
+            body input, canvas, p {
+                margin: 20px;
+                font-size: xx-large;
+            }
+            canvas {
+                outline: 1px solid black;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <input type="file" id="input" oninput="readURL(this);">
+        <p>darkest pixel is (<span id="darkest">?</span>)</p>
+
+        <canvas id="canvas"></canvas>
+
+        <script src="script.js"></script>
+    </body>
+    
+</html>
