@@ -2,7 +2,6 @@
 let imgdim = document.getElementById("imgdim")
 let input = document.getElementById("input")
 let canvas = document.getElementById("canvas")
-
 let context = canvas.getContext("2d") //get canvas context (lets us edit canvas)
 
 let hold = false //tracks if mouse button is held or not
@@ -18,11 +17,16 @@ y2 = 0
 let image = new Image()
 
 class Pixel{
-    constructor(r, g, b){
+    constructor(r, g, b, x = null, y = null){
+        //colors
         this.r = r
         this.g = g
         this.b = b
         this.avg = (r + g + b)/3
+
+        //position (only important if we need to show it)
+        this.x = x
+        this.y = y
     }
 
     toString(){
@@ -56,9 +60,6 @@ function updateCanvas(url) { //adds the image to the canvas
 
         //draw the image
         drawImg(image)
-
-        minimum = findDarkestPixel(context.getImageData(0, 0, w, h).data)
-        updateDarkest(minimum)
     }
     
 }
@@ -107,11 +108,11 @@ canvas.addEventListener("mouseup", (e)=>{
     updateDarkest(darkest)  
 })
 
-function drawBox(xmin, ymin, xmax, ymax){
+function drawBox(xmin, ymin, xmax, ymax, color = "blue"){
     context.beginPath()
     //create a 1px border, so that none of the pixels in the selection are part of the box
     context.rect(xmin - 1, ymin - 1, xmax - xmin + 2, ymax - ymin + 2)
-    context.strokeStyle = "blue"
+    context.strokeStyle = color
     context.stroke()
 }
 
@@ -144,6 +145,8 @@ function findDarkestPixel(id, xmin = 0, ymin = 0, xmax = image.width, ymax = ima
         for (let j = xmin; j < xmax; j++){ //cols
             if (pixels2d[i][j].avg < min.avg){
                 min = pixels2d[i][j]
+                min.x = j
+                min.y = i
             }
         }
     }
@@ -152,4 +155,8 @@ function findDarkestPixel(id, xmin = 0, ymin = 0, xmax = image.width, ymax = ima
 
 function updateDarkest(pixel){ //takes a Pixel object
     document.getElementById("darkest").innerText = pixel.toString()
+    alert(pixel.toString())
+
+    //draw box around the pixel
+    drawBox(pixel.x, pixel.y, pixel.x, pixel.y, "green")
 }
